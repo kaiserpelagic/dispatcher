@@ -10,13 +10,12 @@ trait Dispatcher {
   val host: String 
   val port: Int
   val context: String
-  def svc = :/(host, port) / context 
+  def svc = :/(host, port) / context
  
   val CONTENT_TYPE = "Content-type"
   val ACCEPT = "Accept"
   val JSON = "application/json"
   val XML = "application/xml"
-  val FORM = "application/x-www-form-urlencoded"
 
   def http = new Http with thread.Safety 
   
@@ -31,59 +30,43 @@ trait Dispatcher {
     }
   }
   
-  def getJs[T](path: String)(fromRespJs: JsValue => T): T = {
-    getJs(path, Map.empty[String, String])(fromRespJs)
+  def getJs[T](path: List[String])(fromRespJs: JsValue => T): T = {
+    getJs(path, emptyHeader)(fromRespJs)
   }
 
-  def getJs[T](path: String, params: Map[String, String])(fromRespJs: JsValue => T): T = {
-    execute(svc / path <<? params <:< (header + (ACCEPT -> JSON)) ># { fromRespJs })
-  }
-
-  def getXml[T](path: String, params: Map[String, String])(fromRespXml: NodeSeq => T): T  = {
-    execute(svc / path <<? params <:< (header + (ACCEPT -> XML)) <> { fromRespXml })
-  }
-
-  def getXml[T](path: String)(fromRespXml: NodeSeq => T): T = {
-    getXml(path, Map.empty[String, String])(fromRespXml)
+  def getJs[T](path: List[String], params: Map[String, String])(fromRespJs: JsValue => T): T = {
+    execute(svc / toUrl(path) <<? params <:< Map(ACCEPT -> JSON) ># { fromRespJs })
   }
 
   def getXml[T](path: List[String], params: Map[String, String])(fromRespXml: NodeSeq => T): T  = {
-    getXml(foldPath(path), params)(fromRespXml)
+    execute(svc / toUrl(path) <<? params <:< Map(ACCEPT -> XML) <> { fromRespXml })
   }
 
   def getXml[T](path: List[String])(fromRespXml: NodeSeq => T): T = {
-    getXml(foldPath(path))(fromRespXml)
+    getXml(path)(fromRespXml)
   }
 
-  def put[T](path: String, body: NodeSeq)(fromRespXml:NodeSeq => T):T = { 
-    execute(svc / path <:< (header + (CONTENT_TYPE -> XML)) <<< body.toString <> fromRespXml)
+  def put[T](path: List[String], body: NodeSeq)(fromRespXml:NodeSeq => T): T = { 
+    execute(svc / toUrl(path) <:<  Map(CONTENT_TYPE -> XML) <<< body.toString <> fromRespXml)
   }
 
-  def put[T](path: List[String], body: NodeSeq)(fromRespXml:NodeSeq => T): T = {
-    put(foldPath(path), body)(fromRespXml)
-  }
-
-  def post[T](path: List[String], body: NodeSeq, params: Map[String, String])(fromRespXml:NodeSeq => T):T = {
-    execute(svc / foldPath(path) <<? params <:< (header + (CONTENT_TYPE -> XML)) << body.toString <> fromRespXml)
+  def post[T](path: List[String], body: NodeSeq, params: Map[String, String])(fromRespXml:NodeSeq => T): T = {
+    execute(svc / toUrl(path) <<? params <:< Map(CONTENT_TYPE -> XML) << body.toString <> fromRespXml)
   }
 
   def post[T](path: List[String], body: NodeSeq)(fromRespXml:NodeSeq => T):T = {
-    post(path, body, Map.empty[String,String])(fromRespXml)  
-  }
-
-  def postForm[T](path: List[String], body: String)(fromRespXml:NodeSeq => T):T = {
-    execute(svc / foldPath(path) <:< (header + (CONTENT_TYPE -> FORM)) << body <> fromRespXml)
+    post(path, body, emptyHeader)(fromRespXml)  
   }
 
   def delete[T](path: List[String], params: Map[String, String])(fromRespXml: NodeSeq => T): T = {
-    execute(svc.DELETE / foldPath(path) <<? params <:< (header + (CONTENT_TYPE -> XML)) <> fromRespXml)
+    execute(svc.DELETE / toUrl(path) <<? params <:< Map(CONTENT_TYPE -> XML) <> fromRespXml)
   }
 
   def delete[T](path: List[String])(fromRespXml: NodeSeq => T): T = {
-    delete(path, Map.empty[String, String])(fromRespXml)
+    delete(path, emptyHeader)(fromRespXml)
   }
 
-  def foldPath(path: List[String]): String = path.foldLeft("")((sofar, p) => sofar + p + "/")
+  def toUrl(path: List[String]): String = path.foldLeft("")((sofar, p) => sofar + p + "/")
   
-  def header = Map.empty[String, String]
+  def emptyHeader = Map.empty[String, String]
 }
