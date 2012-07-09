@@ -15,7 +15,7 @@ trait Dispatcher extends HTTPConstants {
   def withHTTP[T](hand: Handler[T]): T = HTTPManager.executeWithHttp(http, hand)
 
   def getJS[T](path: List[String])(respFunc: JsValue => T): T = {
-    getJs(path, header)(respFunc)
+    getJS(path, header)(respFunc)
   }
 
   def getJS[T](path: List[String], params: Map[String, String])(respFunc: JsValue => T): T = {
@@ -42,6 +42,7 @@ trait Dispatcher extends HTTPConstants {
     withHTTP(svc.DELETE / toUrl(path) <:< Map(CONTENT_TYPE -> XML) <> respFunc)
   }
 
+  // TODO: don't use dropRight to get ride of the trailing '/'
   def toUrl(path: List[String]): String = path.foldLeft("")((sofar, p) => sofar + p + "/").dropRight(1)
   
   def header = Map.empty[String, String]
