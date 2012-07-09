@@ -1,9 +1,12 @@
 package com.dispatcher
 
-object TwitterClient extends Dispatcher {
-  val host = "api.twitter.com"
-  val context = "1"
-  val port = 8080
+import dispatch._
+import json._
+import JsHttp._
 
-  def getStatus(id: String) = getJs(List("statuses", "show.json"), Map("id" -> id)) { js => js }
+object TwitterSearch extends Dispatcher {
+  val host = "search.twitter.com"
+
+  def search(q: String) = getJS(List("search.json"), Map("q" -> q)) { ('results ! (list ! obj)) }
 }
+
